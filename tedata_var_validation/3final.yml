@@ -1,0 +1,144 @@
+---
+- name: ip validation
+  hosts: localhost
+  vars: 
+   # ips 
+    edge_ip: 
+    vas_ip: 
+    backup_vas_ip: 
+    bitstream_ip:
+   # interface 1
+    edge_interface:
+    vas_interface:
+   # interfaces 2
+    backup_vas_interface:
+    vf_interface:
+    vf_alfa_interface:
+    et_interface:
+    et_alfa_interface:
+    or_interface:
+    or_alfa_interface:
+    noor_interface:
+    noor_alfa_interface:
+    # cabinet_id
+    cabinet_id:
+  tasks: 
+  #checking ip validation
+  - name: checking ip validation satge1
+    shell:  /var/lib/awx/projects/tedata_var_validation/test  "{{ item }}"
+   # loop: "{{ my_ip }}"
+    loop:
+      - "{{ edge_ip }}"
+      - "{{ vas_ip }}"
+      - "{{ backup_vas_ip }}"
+      - "{{ bitstream_ip }}"
+    register: result
+  - name: send validation result to file
+    blockinfile:
+       path: /root/tower
+       block: |
+              "##################################"
+                 result of stage one ip validation
+               "{{ result }}"
+              "##################################"
+  #  failed_when:   " 'Invalid_IP4_address.' in item "
+  - debug:
+      msg:  "{{ item.stdout }}"
+    failed_when: " 'Invalid_IP4_address.' in item.stdout"
+    loop: "{{ result['results'] }}"
+  # stage number 2
+  # #########################################
+  - name: checking ip validation stage one
+    shell:  grep -o ^"{{ item }}"$ /home/abdo/scrip/file  ;if [[ $? -eq  0 ]]  ;   then echo  "fail" ; else echo  "success"  ; fi
+    loop:
+      - "{{ edge_ip }}"
+      - "{{ vas_ip }}"
+      - "{{ backup_vas_ip }}"
+      - "{{ bitstream_ip }}"
+    register: validation
+  - name: send validation result to file
+    blockinfile:
+       path: /root/tower
+       block: |
+              "####################################"
+              result of stage one ip validation
+                    "{{ validation }}"
+              "###################################"
+
+  - name: showing
+    debug:
+     var: validation
+    failed_when: " 'fail' in item.stdout"
+    loop: "{{ validation['results'] }}"
+   # checking interface 2 validation 
+   ###############################
+  - name: checking interface validation stage one
+    shell:  if [[ "{{ item }}" =~   ^GigabitEthernet[0-9]/[0-9]/[0-9]/[0-9]$ ]]  ;   then echo "success" ; else echo "fail" ; fi 
+    loop:
+      - "{{ backup_vas_interface }}"
+      - "{{ vf_interface }}"
+      - "{{ vf_alfa_interface }}"
+      - "{{ et_interface }}"
+      - "{{ et_alfa_interface }}"
+      - "{{ or_interface }}"
+      - "{{ or_alfa_interface}}"
+      - "{{ noor_interface }}"
+      - "{{ noor_alfa_interface }}"
+    register: testing
+  - name: send validation result to file
+    blockinfile:
+       path: /root/tower
+       block: |
+              "####################################"
+               result of stage of interface 1 validation 
+                       "{{ testing}"
+              "###################################"
+
+  - name: showing 
+    debug: 
+      var: testing['results']
+    failed_when: " 'fail' in item.stdout"
+    loop: "{{ testing['results'] }}"
+    # checking interface 1 validation
+    ################################
+  - name: checking stage 2 of interface validation
+    shell:  if [[ "{{ item }}" =~   ^ge-[0-9]/[0-9]/[0-9]$ ]]  ;   then echo "success" ; else echo "fail" ; fi
+    loop:
+      - "{{ edge_interface }}"
+      - "{{ vas_interface }}"
+    register: edge
+  - name: send validation result to file
+    blockinfile:
+       path: /root/tower
+       block: |
+              "####################################"
+               result of stage of interface 2 validation
+                      "{{ edge }}"
+              "###################################"
+
+  - name: showing2
+    debug:
+      var: edge
+    failed_when: " 'fail' in item.stdout"
+    loop: "{{ edge['results'] }}"
+    ## checking cabinet_id validation
+   ##################################
+  - name: checking id validation
+    shell:  if [[ "{{ item }}" =~   ^[A-Z][A-Z][A-Z][A-Z]-[A-Z][A-Z][A-Z]$ ]]  ;   then echo "success" ; else echo "fail" ; fi
+    loop:
+      - "{{ cabinet_id }}"
+    register: id
+  - name: send validation result to file
+    blockinfile:
+        path: /root/tower
+        block: |
+               "####################################"
+                result of cabinet id  validation
+                          "{{ edge }}"
+               "###################################"
+  - name: showing
+    debug:
+      var: id
+    failed_when: " 'fail' in item.stdout"
+    loop: "{{ id['results'] }}"
+              
